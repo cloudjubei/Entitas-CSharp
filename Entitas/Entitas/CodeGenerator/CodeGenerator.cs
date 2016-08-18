@@ -24,10 +24,10 @@ namespace Entitas.CodeGenerator {
             CleanDir(directory);
 
             var generatedFiles = new List<CodeGenFile>();
-            var componentInfos = provider.componentInfos;
+			var componentInfos = provider.componentInfos;
 
             foreach (var generator in codeGenerators.OfType<IPoolCodeGenerator>()) {
-                var files = generator.Generate(provider.poolNames, componentInfos);
+				var files = generator.Generate(provider.poolNames, componentInfos, provider.indexInfos);
                 generatedFiles.AddRange(files);
                 writeFiles(directory, files);
             }

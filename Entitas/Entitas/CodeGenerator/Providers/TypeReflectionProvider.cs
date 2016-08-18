@@ -2,16 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using Entitas.Serialization;
+using System.Reflection;
 
 namespace Entitas.CodeGenerator {
     public class TypeReflectionProvider : ICodeGeneratorDataProvider {
 
         public string[] poolNames { get { return _poolNames; } }
-        public ComponentInfo[] componentInfos { get { return _componentInfos; } }
+		public ComponentInfo[] componentInfos { get { return _componentInfos; } }
+		public IndexInfo[] indexInfos { get { return _indexInfos; } }
         public string[] blueprintNames { get { return _blueprintNames; } }
 
         readonly string[] _poolNames;
         readonly ComponentInfo[] _componentInfos;
+		readonly IndexInfo[] _indexInfos;
         readonly string[] _blueprintNames;
 
         public TypeReflectionProvider(Type[] types, string[] poolNames, string[] blueprintNames) {
@@ -21,8 +24,17 @@ namespace Entitas.CodeGenerator {
             }
             _poolNames = pools.OrderBy(poolName => poolName).ToArray();
             _componentInfos = GetComponentInfos(types);
+			_indexInfos = GetIndexInfos(types);
             _blueprintNames = blueprintNames;
         }
+
+		public static IndexInfo[] GetIndexInfos(params Type[] types) {
+			var infosFromIndices = types
+				.Where(type => type.GetCustomAttributes(typeof(CustomIndexAttribute), true).Length > 0)
+				.Select(type => CreateIndexInfo(type));
+
+			return infosFromIndices.ToArray();
+		}
 
         public static ComponentInfo[] GetComponentInfos(params Type[] types) {
             var infosFromComponents = types
@@ -44,6 +56,37 @@ namespace Entitas.CodeGenerator {
                 .Concat(infosForNonComponents)
                 .ToArray();
         }
+
+		public static IndexInfo CreateIndexInfo(Type type) {
+			CustomIndexAttribute indexAttribute = (CustomIndexAttribute)(type.GetCustomAttributes(typeof(CustomIndexAttribute), true).First());
+
+			List<IndexFunction> functions = new List<IndexFunction>();
+			foreach(var method in type.GetMethods()){
+				var attr = method.GetCustomAttributes(typeof(IndexFunctionAttribute), true).FirstOrDefault() as IndexFunctionAttribute;
+				if(attr != null){
+					string methodName = string.IsNullOrEmpty(attr.name) ? method.Name : attr.name;
+					string returnType = method.ReturnType.ToString();
+					if(returnType.Contains("`1[")){
+						returnType = returnType.Replace("`1[", "<").Replace("]", ">");
+					}
+					functions.Add(new IndexFunction(
+						methodName,
+						returnType,
+						string.Join(", ", method.GetParameters().Select(p => p.ParameterType + " " + p.Name).ToArray()),
+						string.Join(", ", method.GetParameters().Select(p => p.Name).ToArray()),
+						methodName)
+					);
+				}
+			}
+
+			return new IndexInfo(
+				indexAttribute.name,
+				type.ToCompilableString(),
+				indexAttribute.poolName,
+				indexAttribute.matchers,
+				functions.ToArray()
+			);
+		}
 
         public static ComponentInfo CreateComponentInfo(Type type) {
             return new ComponentInfo(

@@ -85,8 +85,21 @@
     <Compile Include="Entitas\Serialization\Configuration\EntitasPreferencesConfig.cs" />
     <Compile Include="Entitas\Serialization\Configuration\EntitasPreferences.cs" />
     <Compile Include="Entitas\Serialization\Configuration\Properties.cs" />
-    <Compile Include="Entitas\EntityIndex.cs" />
-    <Compile Include="Entitas\CodeGenerator\Attributes\IndexKeyAttribute.cs" />
+    <Compile Include="Entitas\CodeGenerator\Attributes\Indices\ANamedIndexAttribute.cs" />
+    <Compile Include="Entitas\CodeGenerator\Attributes\Indices\CustomIndexAttribute.cs" />
+    <Compile Include="Entitas\CodeGenerator\Attributes\Indices\IndexFunctionAttribute.cs" />
+    <Compile Include="Entitas\CodeGenerator\Attributes\Indices\PrimaryKeyIndexAttribute.cs" />
+    <Compile Include="Entitas\CodeGenerator\Attributes\Indices\SetIndexAttribute.cs" />
+    <Compile Include="Entitas\CodeGenerator\Intermediate\IndexInfo.cs" />
+    <Compile Include="Entitas\Indices\AMapIndex.cs" />
+    <Compile Include="Entitas\Indices\AbstractDictIndex.cs" />
+    <Compile Include="Entitas\Indices\AbstractEntityDictIndex.cs" />
+    <Compile Include="Entitas\Indices\AbstractEntityIndex.cs" />
+    <Compile Include="Entitas\Indices\EntityIndex.cs" />
+    <Compile Include="Entitas\Indices\EntityIndexException.cs" />
+    <Compile Include="Entitas\Indices\EntityMapIndex.cs" />
+    <Compile Include="Entitas\Indices\PrimaryKeyIndex.cs" />
+    <Compile Include="Entitas\Indices\SetIndex.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
