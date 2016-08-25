@@ -267,6 +267,97 @@ $assign
         }
     }
 ";
+			const string specificMatcherFormat = @"		
+	public partial class $TagMatcher {
+        static IMatcher _matcher$Name;
+
+        public static IMatcher $Name {
+            get {
+                if (_matcher$Name == null) {
+                    var matcher = (Matcher)Matcher.AllOf($Ids.$Name);
+                    matcher.componentNames = $Ids.componentNames;
+                    _matcher$Name = matcher;
+                }
+
+                return _matcher$Name;
+            }
+        }
+
+		static System.Collections.Generic.Dictionary<$MemberType,$NameMatcher> _$nameMatchers = new System.Collections.Generic.Dictionary<$MemberType,$NameMatcher>();
+
+		public static IMatcher $NameMatch($MemberType match)
+		{
+			if(!_$nameMatchers.ContainsKey(match)){
+				_$nameMatchers.Add(match, new $NameMatcher(match));
+			}
+			return _$nameMatchers[match];
+		}
+
+		internal class $NameMatcher : IMatcher 
+		{			
+			protected $MemberType match;
+		
+			public $NameMatcher($MemberType match)
+			{
+				this.match = match;
+			}
+
+			public bool Matches(Entity e){ return e.has$Name && e.$name.$MemberName == match; }
+			
+			int[] _indices = {$Ids.$Name};
+
+			public int[] indices{ get{ return _indices; } }
+
+			public bool IsValueMatcher(){ return true; }
+		}
+	}
+";
+
+const string specificMatcherEnumFormat = @"		
+	public partial class $TagMatcher {
+        static IMatcher _matcher$Name;
+
+        public static IMatcher $Name {
+            get {
+                if (_matcher$Name == null) {
+                    var matcher = (Matcher)Matcher.AllOf($Ids.$Name);
+                    matcher.componentNames = $Ids.componentNames;
+                    _matcher$Name = matcher;
+                }
+
+                return _matcher$Name;
+            }
+        }
+
+		static System.Collections.Generic.Dictionary<$MemberType,$NameMatcher> _$nameMatchers = new System.Collections.Generic.Dictionary<$MemberType,$NameMatcher>();
+
+		public static IMatcher $NameMatch($MemberType match)
+		{
+			if(!_$nameMatchers.ContainsKey(match)){
+				_$nameMatchers.Add(match, new $NameMatcher(match));
+			}
+			return _$nameMatchers[match];
+		}
+
+		internal class $NameMatcher : IMatcher 
+		{			
+			protected $MemberType match;
+		
+			public $NameMatcher($MemberType match)
+			{
+				this.match = match;
+			}
+
+			public bool Matches(Entity e){ return e.has$Name && ((e.$name.$MemberName & match) == e.$name.$MemberName); }
+			
+			int[] _indices = {$Ids.$Name};
+
+			public int[] indices{ get{ return _indices; } }
+
+			public bool IsValueMatcher(){ return true; }
+		}
+	}
+";
 
             if (onlyDefault) {
                 if (componentInfo.pools.Contains(CodeGenerator.DEFAULT_POOL_NAME)) {
@@ -278,6 +369,12 @@ $assign
                 var poolIndex = 0;
                 var matchers = componentInfo.pools.Aggregate(string.Empty, (acc, poolName) => {
                     if (!poolName.IsDefaultPoolName()) {
+						if(componentInfo.memberInfos.Count == 1){
+							var memberInfo = componentInfo.memberInfos[0];
+							if(memberInfo.type.IsValueType || memberInfo.type == typeof(string)){
+								return acc + buildString(componentInfo, componentInfo.memberInfos[0], memberInfo.type.IsEnum && memberInfo.type.GetCustomAttributes(typeof(FlagsAttribute), false).Length == 1 ? specificMatcherEnumFormat : specificMatcherFormat, poolIndex++);
+							}
+						}
                         return acc + buildString(componentInfo, matcherFormat, poolIndex++);
                     } else {
                         poolIndex += 1;
@@ -330,7 +427,48 @@ $assign
                         .Replace("$args", "{7}")
                         .Replace("$Prefix", "{8}")
                         .Replace("$prefix", "{9}");
-        }
+		}
+
+		static string buildString(ComponentInfo componentInfo, PublicMemberInfo memberInfo, string format, int poolIndex = 0) {
+			format = createMemberFormatString(format);
+			var a0_type = componentInfo.fullTypeName;
+			var a1_name = componentInfo.typeName.RemoveComponentSuffix();
+			var a2_lowercaseName = a1_name.LowercaseFirst();
+			var poolNames = componentInfo.pools;
+			var a3_tag = poolNames[poolIndex].PoolPrefix();
+			var lookupTags = componentInfo.ComponentLookupTags();
+			var a4_ids = lookupTags.Length == 0 ? string.Empty : lookupTags[poolIndex];
+			var memberInfos = componentInfo.memberInfos;
+			var a5_memberType = memberInfo.type.ToString();
+			var a6_memberName = memberInfo.name;
+			var a7_memberNamesWithType = memberNamesWithType(memberInfos);
+			var a8_memberAssigns = memberAssignments(memberInfos);
+			var a9_memberNames = memberNames(memberInfos);
+			var prefix = componentInfo.singleComponentPrefix;
+			var a10_prefix = prefix.UppercaseFirst();
+			var a11_lowercasePrefix = prefix.LowercaseFirst();
+
+			return string.Format(format, a0_type, a1_name, a2_lowercaseName,
+				a3_tag, a4_ids, a5_memberType, a6_memberName, a7_memberNamesWithType, a8_memberAssigns, a9_memberNames,
+				a10_prefix, a11_lowercasePrefix);
+		}
+
+		static string createMemberFormatString(string format) {
+			return format.Replace("{", "{{")
+				.Replace("}", "}}")
+				.Replace("$Type", "{0}")
+				.Replace("$Name", "{1}")
+				.Replace("$name", "{2}")
+				.Replace("$Tag", "{3}")
+				.Replace("$Ids", "{4}")
+				.Replace("$MemberType", "{5}")
+				.Replace("$MemberName", "{6}")
+				.Replace("$typedArgs", "{7}")
+				.Replace("$assign", "{8}")
+				.Replace("$args", "{9}")
+				.Replace("$Prefix", "{10}")
+				.Replace("$prefix", "{11}");
+		}
 
         static string memberNamesWithType(List<PublicMemberInfo> memberInfos) {
             var typedArgs = memberInfos

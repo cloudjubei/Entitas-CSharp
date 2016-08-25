@@ -8,6 +8,7 @@
 
         public static IAllOfMatcher AllOf(params IMatcher[] matchers) {
             var allOfMatcher = (Matcher)Matcher.AllOf(mergeIndices(matchers));
+			allOfMatcher._valueMatchers = getValueMatchers(matchers);
             setComponentNames(allOfMatcher, matchers);
             return allOfMatcher;
         }

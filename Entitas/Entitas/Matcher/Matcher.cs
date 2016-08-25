@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Entitas;
 
 namespace Entitas {
-    public partial class Matcher : IAllOfMatcher, IAnyOfMatcher, INoneOfMatcher {
+	public partial class Matcher : IAllOfMatcher, IAnyOfMatcher, INoneOfMatcher {
         public int[] indices {
             get {
                 if (_indices == null) {
@@ -16,11 +16,13 @@ namespace Entitas {
         public int[] allOfIndices { get { return _allOfIndices; } }
         public int[] anyOfIndices { get { return _anyOfIndices; } }
         public int[] noneOfIndices { get { return _noneOfIndices; } }
+		public IMatcher[] valueMatchers { get { return _valueMatchers; } }
 
         int[] _indices;
         int[] _allOfIndices;
         int[] _anyOfIndices;
         int[] _noneOfIndices;
+		IMatcher[] _valueMatchers;
 
         Matcher() {
         }
@@ -49,8 +51,24 @@ namespace Entitas {
             var matchesAllOf = _allOfIndices == null || entity.HasComponents(_allOfIndices);
             var matchesAnyOf = _anyOfIndices == null || entity.HasAnyComponent(_anyOfIndices);
             var matchesNoneOf = _noneOfIndices == null || !entity.HasAnyComponent(_noneOfIndices);
-            return matchesAllOf && matchesAnyOf && matchesNoneOf;
+			var matchesValues = _valueMatchers == null || MatchesValues(_valueMatchers, entity);
+			return matchesAllOf && matchesAnyOf && matchesNoneOf && matchesValues;
         }
+
+		public bool IsValueMatcher()
+		{
+			return false;
+		}
+
+		static bool MatchesValues(IMatcher[] matchers, Entity e)
+		{
+			for(int i=matchers.Length-1; i>=0; i--){
+				if(!matchers[i].Matches(e)){
+					return false;
+				}
+			}
+			return true;
+		}
 
         int[] mergeIndices() {
             var totalIndices = (_allOfIndices != null ? _allOfIndices.Length : 0)
@@ -83,6 +101,21 @@ namespace Entitas {
 
             return indices;
         }
+
+		static IMatcher[] getValueMatchers(IMatcher[] matchers) {
+			var valueMatchers = new List<IMatcher>();
+
+			for (int i = matchers.Length-1; i >=0; i--) {
+				var matcher = matchers[i];
+				if(matcher.IsValueMatcher()){
+					valueMatchers.Add(matcher);
+				}
+			}
+			if(valueMatchers.Count > 0){
+				return valueMatchers.ToArray();
+			}
+			return null;
+		}
 
         static string[] getComponentNames(IMatcher[] matchers) {
             for (int i = 0, matchersLength = matchers.Length; i < matchersLength; i++) {
